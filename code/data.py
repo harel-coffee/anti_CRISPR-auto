@@ -114,6 +114,6 @@ def get_data():
     data_test_all=[AAC_data_test,CKSAAP_data_test,DDE_data_test,DPC_data_test,PAAC_data_test,DPC_PSSM_data_test,PSSM_AC_data_test,
         PSSM_COM_data_test,RPSSM_data_test,SMO_PSSM_data_test,BiLSTM_PSSM_data_test,LM_data_test,SSA_data_test,BERT_data_test,
         UniRep_data_test,W2V_data_test,esm_data_test,prott_data_test]
-    data_train=[AAC_data_train,PAAC_data_train,PSSM_AC_data_train,RPSSM_data_train,SSA_data_train]
-    data_test=[AAC_data_test,PAAC_data_test,PSSM_AC_data_test,RPSSM_data_test,SSA_data_test]
-    return data_train,data_test,data_train_all,data_test_all
+    data_train=[PSSM_AC_data_train,RPSSM_data_train,SSA_data_train]
+    data_test=[PSSM_AC_data_test,RPSSM_data_test,SSA_data_test]
+    return data_train,data_test
