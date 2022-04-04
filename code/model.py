@@ -37,22 +37,42 @@ def mrmr_feature_selection(data):
     return x 
 
 ###performance assessment
-def metrix(proba_y,verified_y):
-    fpr,tpr,threshols=roc_curve(list(verified_y),list(proba_y))
-    aucs=auc(fpr,tpr)#AUC value
+
+def performance(y_pred,y_verified):
+    fpr,tpr,threshols=roc_curve(list(y_verified),list(y_pred))
     
-    pred_y=np.where(np.array(proba_y)>=0.5,1,np.array(proba_y))
+    pred_y=np.where(np.array(y_pred)>=0.5,1,np.array(y_pred))
     pred_y=np.where(pred_y<0.5,0,pred_y)
     #SN,SP,PRE,ACC,F-Score,MCC
-    SN=recall_score(verified_y,pred_y)
-    PRE=precision_score(verified_y,pred_y)
-    ACC=accuracy_score(verified_y, pred_y)
-    F_score=f1_score(verified_y,pred_y)
-    MCC=matthews_corrcoef(verified_y, pred_y)
-    tn, fp, fn, tp = confusion_matrix(verified_y, pred_y).ravel()
+    SN=recall_score(y_verified,pred_y)
+    PRE=precision_score(y_verified,pred_y)
+    ACC=accuracy_score(y_verified, pred_y)
+    F_score=f1_score(y_verified,pred_y)
+    MCC=matthews_corrcoef(y_verified, pred_y)
+    tn, fp, fn, tp = confusion_matrix(y_verified, pred_y).ravel()
     SP= tn / (tn+fp)
-    per=np.array([PRE,SN,SP,F_score,ACC,MCC,aucs])
-    return per,fpr,tpr
+    per=[PRE,SN,SP,F_score,ACC,MCC,auc(fpr,tpr)]
+    return per
+
+def metrix(proba_y,verified_y):
+    mean_fpr=np.linspace(0,1,100)
+    per,tprs=[],[],[]
+    for y_pred,y_verified in zip(proba_y,verified_y):
+        fpr,tpr,threshols=roc_curve(list(y_verified),list(y_pred))
+        tprs.append(np.interp(mean_fpr, fpr, tpr))
+        tprs[-1][0] = 0.0
+        per.append(performance(y_pred,y_verified))
+            
+    mean_tpr = np.mean(tprs, axis=0)
+    mean_tpr[-1] = 1.0
+    mean_auc = auc(mean_fpr, mean_tpr)
+    mean_per=np.mean(per,axis=0)
+    mean_per[-1]=mean_auc
+    metrics=pd.DataFrame(per,columns=['PRE','SN','SP','F_score','ACC','MCC','AUC'])
+    metrics.append(mean_per)
+    metrics.append(np.std(per,axis=0))
+    metrics.insert(0,'category',['fold1','fold2','fold3','fold4','fold5','mean','std'])
+    return metrics
 
 ###build ensmeble model
 def ensemble_model(train_data):
@@ -91,14 +111,78 @@ def ensemble_model(train_data):
     #ensemble
     ensem = VotingClassifier(estimators=list(zip(model_str,model_name)),voting='soft',weights=[1]*(len(model_name))).fit(x_train,y_train) 
     return ensem
+
+####the ROC curve of 5-fold cross validation
+def ROC_5_fold(y_proba_valid,y_validation):
+    plt.figure(figsize=(10,10))
+    i = 0
+    mean_fpr=np.linspace(0,1,100)
+    tprs,aucs=[],[]
+    for y_proba, y_verified in zip(y_proba_valid, y_validation):
+        # Compute ROC curve and area the curve
+        fpr, tpr, thresholds = roc_curve(list(y_verified), list(y_proba))
+        tprs.append(np.interp(mean_fpr, fpr, tpr))
+        tprs[-1][0] = 0.0
+        roc_auc = auc(fpr, tpr)
+        aucs.append(roc_auc)
+        plt.plot(fpr, tpr, lw=1, alpha=0.3,
+                label='ROC fold %d (AUC = %0.3f)' % (i, roc_auc))
+
+        i += 1
+    plt.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r', alpha=.8)
+
+    mean_tpr = np.mean(tprs, axis=0)
+    mean_tpr[-1] = 1.0
+    mean_auc = auc(mean_fpr, mean_tpr)
+    std_auc = np.std(aucs)
+    plt.plot(mean_fpr, mean_tpr, color='b',
+            label=r'Mean ROC (AUC = %0.3f $\\pm$ %0.3f)' % (mean_auc, std_auc),
+            lw=2, alpha=.8)
+
+    std_tpr = np.std(tprs, axis=0)
+    tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
+    tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
+    plt.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=0.3,
+                    label=r'$\\pm$ 1 std. dev.')
+    plt.set_xlim([-0.05, 1.05])
+    plt.set_ylim([-0.05, 1.05])
+    plt.set_yticks([0.0,0.2,0.4,0.6,0.8,1.0])
+    plt.set_yticklabels(['0.0','0.2','0.4','0.6','0.8','1.0'],fontsize=14)
+    plt.set_xticks([0.0,0.2,0.4,0.6,0.8,1.0])
+    plt.set_xticklabels(['0.0','0.2','0.4','0.6','0.8','1.0'],fontsize=14)
+    plt.set_ylabel('True Positive Rate',fontsize=16)
+    plt.set_xlabel('False Positive Rate',fontsize=16)
+    plt.legend(loc="lower right",fontsize=15)
+    plt.show()
+
+def auc_pred(test_pred_score,test_verified):
+    fpr,tpr,threshold = roc_curve(test_pred_score, test_verified) ###
+    roc_auc = auc(fpr,tpr) ###
+    plt.figure()
+    lw = 2
+    plt.figure(figsize=(10,10))
+    plt.plot(fpr, tpr, color='b',
+            lw=lw, label='ROC curve (area = %0.3f)' % roc_auc) ###
+    plt.plot([0, 1], [0, 1], color='r', lw=lw, linestyle='--')
+    plt.set_xlim([-0.05, 1.05])
+    plt.set_ylim([-0.05, 1.05])
+    plt.set_yticks([0.0,0.2,0.4,0.6,0.8,1.0])
+    plt.set_yticklabels(['0.0','0.2','0.4','0.6','0.8','1.0'],fontsize=14)
+    plt.set_xticks([0.0,0.2,0.4,0.6,0.8,1.0])
+    plt.set_xticklabels(['0.0','0.2','0.4','0.6','0.8','1.0'],fontsize=14)
+    plt.set_ylabel('True Positive Rate',fontsize=16)
+    plt.set_xlabel('False Positive Rate',fontsize=16)
+    plt.legend(loc="lower right",fontsize=15)
+    plt.show()
+
 ####
 def get_result(train_data,test_data):   
-    tpr_all,valida_per_all,y_proba_test_all=[],[],[]
+    y_verified_valid_all,y_proba_valid_all,y_proba_test_all=[],[],[]
     mean_fpr=np.linspace(0,1,100)
      
     kf=StratifiedKFold(n_splits=5) ###5-fold-cross-validation
     x,y=train_data[0].iloc[:,1:],train_data[0].iloc[:,0]  
-    for train_site, valida_site in tqdm(kf.split(x,y)):
+    for train_site, valida_site in kf.split(x,y):
         y_proba_test_ense,y_proba_valid_ense=[],[]
         
         for i in range(0,len(train_data)):
@@ -110,50 +194,28 @@ def get_result(train_data,test_data):
             y_proba_valid_ense.append(y_proba_valid)
             y_proba_test_ense.append(y_proba_test)  
              
-        y_proba_valid_once=np.mean(y_proba_valid_ense,axis=0) ##ensemble three features 
-        y_proba_test_once=np.mean(y_proba_test_ense,axis=0)
+        y_proba_valid_all.append(np.mean(y_proba_valid_ense,axis=0)) ##ensemble three features 
+        y_proba_test_all.append(np.mean(y_proba_test_ense,axis=0))
+        y_verified_valid_all.append(valida.iloc[:,0])
         ##
-        valida_per_once,valida_fpr_once,valida_tpr_once=metrix(y_proba_valid_once,valida.iloc[:,0])## obtain the validation performance of the ensemble model with ensemble three features
-        inter_tpr=np.interp(mean_fpr,valida_fpr_once,valida_tpr_once)
-        tpr_all.append(inter_tpr)
-        valida_per_all.append(valida_per_once)
-        y_proba_test_all.append(y_proba_test_once)##
-
     test_pred_score=np.mean(y_proba_test_all,axis=0)#the predicted probability of the test data
-    valid_per_mean,valid_per_std=np.mean(valida_per_all,axis=0),np.std(valida_per_all,axis=0) ##the average of 5-fold performance
-    valid_mean_tpr,valid_std_tpr=np.mean(tpr_all,axis=0),np.std(tpr_all,axis=0) 
-    return valid_per_mean,valid_per_std,valid_mean_tpr,valid_std_tpr,test_pred_score
+#    valid_per_mean,valid_per_std=np.mean(valida_per_all,axis=0),np.std(valida_per_all,axis=0) ##the average of 5-fold performance
+#    valid_mean_tpr,valid_std_tpr=np.mean(tpr_all,axis=0),np.std(tpr_all,axis=0) 
+    return y_proba_valid_all,y_verified_valid_all,test_pred_score
 
 train_data,test_data=data.get_data()
 featurename=['PSSM_AC','RPSSM','SSA']
-valid_per_mean,valid_per_std,valid_mean_tpr,valid_std_tpr,test_pred_score=get_result(train_data,test_data)
+y_proba_valid_all,y_verified_valid_all,test_pred_score=get_result(train_data,test_data)
 
-####Outcomes
-##the performance of 5-fold cross validation
-Validation_performance=['%.3f' % valid_per_mean[j]+chr(177)+'%.3f' % valid_per_std[j] for j in range(0,len(valid_per_mean))]
-Validation_performance=pd.DataFrame(Validation_performance,columns=['PRE','SN','SP','F_score','ACC','MCC','AUC'])
+###the performance ofvalidation datasets
+## ROC images of 5-fold cross validation
+ROC_5_fold(y_proba_valid_all,y_verified_valid_all)
+#metrixs
+validation_perfromance=metrix(y_proba_valid_all,y_verified_valid_all)
+
 ##the performance of test data
-test_performance,test_fpr,test_trp=metrix(test_pred_score,test_data[0].iloc[:,0])
+test_performance=performance(test_pred_score,test_data[0].iloc[:,0])
 test_performance=pd.DataFrame(test_performance,columns=['PRE','SN','SP','F_score','ACC','MCC','AUC'])
-
-def plot_roc(mean_tpr,std_tpr,mean_auc,std_auc,featurename):
-    plt.rcParams['font.family']=['Arial']
-    fig=plt.figure(figsize=(16,10)) 
-    mean_fpr=np.linspace(0,1,100)
-    col=['cyan','orange','green','blue','red']
-    plt.plot(mean_fpr, mean_tpr, color=col[0],lw=2, label='ROC curve of {} (AUC=%0.3f $\\pm$ %0.3f)'.format(featurename)%(mean_auc,std_auc))
-    tprs_upper=np.minimum(mean_tpr+std_tpr,1)
-    tprs_lower=np.maximum(mean_tpr-std_tpr,0)
-    plt.fill_between(mean_fpr,tprs_lower,tprs_upper,alpha=0.3)
-    plt.legend(loc="lower right",fontsize=14)   
-    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-    plt.set_xlim([-0.05, 1.05])
-    plt.set_ylim([-0.05, 1.05])
-    plt.set_yticks([0.0,0.2,0.4,0.6,0.8,1.0])
-    plt.set_yticklabels(['0.0','0.2','0.4','0.6','0.8','1.0'],fontsize=14)
-    plt.set_xticks([0.0,0.2,0.4,0.6,0.8,1.0])
-    plt.set_xticklabels(['0.0','0.2','0.4','0.6','0.8','1.0'],fontsize=14)
-    plt.set_ylabel('True Positive Rate',fontsize=15)
-    plt.set_xlabel('False Positive Rate',fontsize=15)
-    plt.show()
+##ROC image:
+auc_pred(test_pred_score,test_data[0].iloc[:,0])
 
