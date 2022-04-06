@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pylab as plt
 from sklearn.svm import SVC
 from sklearn.metrics import confusion_matrix
-from sklearn.metrics import precision_score,recall_score,accuracy_score,f1_score,matthews_corrcoef,roc_curve
+from sklearn.metrics import precision_score,recall_score,accuracy_score,f1_score,matthews_corrcoef,roc_curve,auc
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
@@ -66,8 +66,8 @@ def metrix(proba_y,verified_y):
     mean_per=np.mean(per,axis=0)
     mean_per[-1]=mean_auc
     metrics=pd.DataFrame(per,columns=['PRE','SN','SP','F_score','ACC','MCC','AUC'])
-    metrics.append(mean_per)
-    metrics.append(np.std(per,axis=0))
+    metrics.loc[5]=list(mean_per)
+    metrics.loc[6]=list(np.std(per,axis=0))
     metrics.insert(0,'category',['fold1','fold2','fold3','fold4','fold5','mean','std'])
     return metrics
 
@@ -111,7 +111,7 @@ def ensemble_model(train_data):
 
 ####the ROC curve of 5-fold cross validation
 def ROC_5_fold(y_proba_valid,y_validation):
-    plt.figure(figsize=(10,10))
+    plt.figure(figsize=(10,8))
     i = 0
     mean_fpr=np.linspace(0,1,100)
     tprs,aucs=[],[]
@@ -133,14 +133,14 @@ def ROC_5_fold(y_proba_valid,y_validation):
     mean_auc = auc(mean_fpr, mean_tpr)
     std_auc = np.std(aucs)
     plt.plot(mean_fpr, mean_tpr, color='b',
-            label=r'Mean ROC (AUC = %0.3f $\\pm$ %0.3f)' % (mean_auc, std_auc),
+            label='Mean ROC (AUC = %0.3f $\\pm$ %0.3f)' % (mean_auc, std_auc),
             lw=2, alpha=.8)
 
     std_tpr = np.std(tprs, axis=0)
     tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
     tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
     plt.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=0.3,
-                    label=r'$\\pm$ 1 std. dev.')
+                    label='$\\pm$ 1 std. dev.')
     plt.xlim([-0.05, 1.05])
     plt.ylim([-0.05, 1.05])
     plt.yticks([0.0,0.2,0.4,0.6,0.8,1.0],labels=['0.0','0.2','0.4','0.6','0.8','1.0'])
@@ -151,9 +151,8 @@ def ROC_5_fold(y_proba_valid,y_validation):
     plt.show()
 
 def auc_pred(test_pred_score,test_verified):
-    fpr,tpr,threshold = roc_curve(test_pred_score, test_verified) ###
+    fpr,tpr,threshold = roc_curve(test_verified, test_pred_score) ###
     roc_auc = auc(fpr,tpr) ###
-    plt.figure()
     lw = 2
     plt.figure(figsize=(10,10))
     plt.plot(fpr, tpr, color='b',
