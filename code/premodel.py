@@ -22,9 +22,6 @@ from sklearn.model_selection import GridSearchCV
 from math import sqrt
 from tqdm import tqdm, trange
 from itertools import combinations
-import sys
-sys.path.append(r'F:\\zhulin\\monsh\\paper-anti-CRISPR\\latex\\outcomes\\vot_outcome\\anti_CRISPR\\code')
-import data ### read data from data.py
 
 ###doing feature selection and normalization with mrmr mrthod
 def mrmr_feature_selection(data):
@@ -56,7 +53,7 @@ def performance(y_pred,y_verified):
 
 def metrix(proba_y,verified_y):
     mean_fpr=np.linspace(0,1,100)
-    per,tprs=[],[],[]
+    per,tprs=[],[]
     for y_pred,y_verified in zip(proba_y,verified_y):
         fpr,tpr,threshols=roc_curve(list(y_verified),list(y_pred))
         tprs.append(np.interp(mean_fpr, fpr, tpr))
@@ -144,14 +141,12 @@ def ROC_5_fold(y_proba_valid,y_validation):
     tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
     plt.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=0.3,
                     label=r'$\\pm$ 1 std. dev.')
-    plt.set_xlim([-0.05, 1.05])
-    plt.set_ylim([-0.05, 1.05])
-    plt.set_yticks([0.0,0.2,0.4,0.6,0.8,1.0])
-    plt.set_yticklabels(['0.0','0.2','0.4','0.6','0.8','1.0'],fontsize=14)
-    plt.set_xticks([0.0,0.2,0.4,0.6,0.8,1.0])
-    plt.set_xticklabels(['0.0','0.2','0.4','0.6','0.8','1.0'],fontsize=14)
-    plt.set_ylabel('True Positive Rate',fontsize=16)
-    plt.set_xlabel('False Positive Rate',fontsize=16)
+    plt.xlim([-0.05, 1.05])
+    plt.ylim([-0.05, 1.05])
+    plt.yticks([0.0,0.2,0.4,0.6,0.8,1.0],labels=['0.0','0.2','0.4','0.6','0.8','1.0'])
+    plt.xticks([0.0,0.2,0.4,0.6,0.8,1.0],labels=['0.0','0.2','0.4','0.6','0.8','1.0'])
+    plt.ylabel('True Positive Rate',fontsize=16)
+    plt.xlabel('False Positive Rate',fontsize=16)
     plt.legend(loc="lower right",fontsize=15)
     plt.show()
 
@@ -164,14 +159,12 @@ def auc_pred(test_pred_score,test_verified):
     plt.plot(fpr, tpr, color='b',
             lw=lw, label='ROC curve (area = %0.3f)' % roc_auc) ###
     plt.plot([0, 1], [0, 1], color='r', lw=lw, linestyle='--')
-    plt.set_xlim([-0.05, 1.05])
-    plt.set_ylim([-0.05, 1.05])
-    plt.set_yticks([0.0,0.2,0.4,0.6,0.8,1.0])
-    plt.set_yticklabels(['0.0','0.2','0.4','0.6','0.8','1.0'],fontsize=14)
-    plt.set_xticks([0.0,0.2,0.4,0.6,0.8,1.0])
-    plt.set_xticklabels(['0.0','0.2','0.4','0.6','0.8','1.0'],fontsize=14)
-    plt.set_ylabel('True Positive Rate',fontsize=16)
-    plt.set_xlabel('False Positive Rate',fontsize=16)
+    plt.xlim([-0.05, 1.05])
+    plt.ylim([-0.05, 1.05])
+    plt.yticks([0.0,0.2,0.4,0.6,0.8,1.0],labels=['0.0','0.2','0.4','0.6','0.8','1.0'])
+    plt.xticks([0.0,0.2,0.4,0.6,0.8,1.0],labels=['0.0','0.2','0.4','0.6','0.8','1.0'])
+    plt.ylabel('True Positive Rate',fontsize=16)
+    plt.xlabel('False Positive Rate',fontsize=16)
     plt.legend(loc="lower right",fontsize=15)
     plt.show()
 
@@ -202,20 +195,3 @@ def get_result(train_data,test_data):
 #    valid_per_mean,valid_per_std=np.mean(valida_per_all,axis=0),np.std(valida_per_all,axis=0) ##the average of 5-fold performance
 #    valid_mean_tpr,valid_std_tpr=np.mean(tpr_all,axis=0),np.std(tpr_all,axis=0) 
     return y_proba_valid_all,y_verified_valid_all,test_pred_score
-
-train_data,test_data=data.get_data()
-featurename=['PSSM_AC','RPSSM','SSA']
-y_proba_valid_all,y_verified_valid_all,test_pred_score=get_result(train_data,test_data)
-
-###the performance ofvalidation datasets
-## ROC images of 5-fold cross validation
-ROC_5_fold(y_proba_valid_all,y_verified_valid_all)
-#metrixs
-validation_perfromance=metrix(y_proba_valid_all,y_verified_valid_all)
-
-##the performance of test data
-test_performance=performance(test_pred_score,test_data[0].iloc[:,0])
-test_performance=pd.DataFrame(test_performance,columns=['PRE','SN','SP','F_score','ACC','MCC','AUC'])
-##ROC image:
-auc_pred(test_pred_score,test_data[0].iloc[:,0])
-
