@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pylab as plt
 from sklearn.svm import SVC
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix,precision_recall_curve,auc,
 from sklearn.metrics import precision_score,recall_score,accuracy_score,f1_score,matthews_corrcoef,roc_curve,auc
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -15,7 +15,6 @@ import os
 from sklearn.model_selection import StratifiedKFold
 from mrmr import mrmr_classif
 from sklearn import preprocessing
-from sklearn.metrics import auc
 from sklearn.model_selection import cross_val_predict
 import multiprocessing as mp
 from sklearn.model_selection import GridSearchCV
@@ -167,6 +166,17 @@ def auc_pred(test_pred_score,test_verified):
     plt.legend(loc="lower right",fontsize=15)
     plt.show()
 
+def pr_curve(test_pred_score,test_verified):
+    precision,recall,thresholds=precision_recall_curve(test_verified,test_pred_score)
+    plt.figure(figsize=(10,10))
+    plt.plot(recall,precision)
+    plt.rc('legend',fontsize=16)
+    plt.xlim([-0.05, 1.05])
+    plt.ylim([-0.05, 1.05])
+    plt.xlabel('Recall',fontsize=16)
+    plt.ylabel('Precision',fontsize=16)
+    plt.title('Precision/Recall Curve of {}'.format('PreAcrs'),fontsize=18)
+    plt.show()
 ####
 def get_result(train_data,test_data):   
     y_verified_valid_all,y_proba_valid_all,y_proba_test_all=[],[],[]
