@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pylab as plt
 from sklearn.svm import SVC
-from sklearn.metrics import confusion_matrix,precision_recall_curve,auc,
+from sklearn.metrics import confusion_matrix,precision_recall_curve,auc
 from sklearn.metrics import precision_score,recall_score,accuracy_score,f1_score,matthews_corrcoef,roc_curve,auc
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
