@@ -15,12 +15,13 @@ import os
 from sklearn.model_selection import StratifiedKFold
 from mrmr import mrmr_classif
 from sklearn import preprocessing
-from sklearn.model_selection import cross_val_predict
 import multiprocessing as mp
 from sklearn.model_selection import GridSearchCV
 from math import sqrt
 from tqdm import tqdm, trange
 from itertools import combinations
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import StackingClassifier,GradientBoostingClassifier
 
 ###doing feature selection and normalization with mrmr mrthod
 def mrmr_feature_selection(data):
@@ -71,8 +72,7 @@ def metrix(proba_y,verified_y):
     return metrics
 
 ###build ensmeble model
-def ensemble_model(train_data):
-    x_train,y_train=train_data.iloc[:,1:],train_data.iloc[:,0]
+def individual_model(x_train,y_train):
     max_par=int(max(x_train.columns.size/2,sqrt(x_train.columns.size)))
     model_name=[]
     model_str=['SVM','KNN','RF','MLP','LR','XGB','Light']
@@ -103,10 +103,17 @@ def ensemble_model(train_data):
     model_name.append(XGB)
     #Light
     light=LGBMClassifier().fit(x_train,y_train)
-    model_name.append(light)
-    #ensemble
-    ensem = VotingClassifier(estimators=list(zip(model_str,model_name)),voting='soft',weights=[1]*(len(model_name))).fit(x_train,y_train) 
-    return ensem
+    model_name.append(light) 
+    return model_str,model_name
+
+def ensemble_model1(train_data):
+    x_train,y_train=train_data.iloc[:,1:],train_data.iloc[:,0]
+    model_str,model_name=individual_model(x_train,y_train)
+    #ensemble1:hard voting 
+    #ensem1 = VotingClassifier(estimators=list(zip(model_str,model_name)),voting='soft',weights=[1]*(len(model_name))).fit(x_train,y_train)
+    ensem2 = StackingClassifier(estimators=list(zip(model_str,model_name)),final_estimator=LogisticRegression()).fit(x_train,y_train)
+    #ensem3 = StackingClassifier(estimators=list(zip(model_str,model_name)),final_estimator=GradientBoostingClassifier()).fit(x_train,y_train)
+    return ensem2    
 
 ####the ROC curve of 5-fold cross validation
 def ROC_5_fold(y_proba_valid,y_validation):
@@ -190,7 +197,7 @@ def get_result(train_data,test_data):
         for i in range(0,len(train_data)):
             train,valida=mrmr_feature_selection(train_data[i].iloc[train_site,:]),mrmr_feature_selection(train_data[i].iloc[valida_site,:])
             test=mrmr_feature_selection(test_data[i])
-            ensemble_clf=ensemble_model(train)
+            ensemble_clf=ensemble_model1(train)
             y_proba_valid=ensemble_clf.predict_proba(valida.iloc[:,1:])[:,1]
             y_proba_test=ensemble_clf.predict_proba(test.iloc[:,1:])[:,1]
             y_proba_valid_ense.append(y_proba_valid)
