@@ -8,8 +8,8 @@ PreAcrs: one powerful model to predict anti-CRISPR proteins
 
 After downloading the amino acid sequences of anti-CRISPR proteins and un-anti-CRISPR proteins from NCBI and UniProt, you should extract three features from the below steps before using PreAcrs:you should extract three features from belowing steps before you use PreAcrs.
 
-1. extracting the PSSM_AC feature and RPSSM feature from an online service named POSSUM [https://possum.erc.monash.edu/server.jsp]()
-2. extracting the SSA feature from a python-based toolkit named eFeature [http://lab.malab.cn/soft/eFeature/index.html](http://lab.malab.cn/soft/eFeature/index.html)
+1. Extracting the PSSM_AC feature and RPSSM feature from an online service named POSSUM [https://possum.erc.monash.edu/server.jsp]()
+2. Extracting the SSA feature from a python-based toolkit named eFeature [http://lab.malab.cn/soft/eFeature/index.html](http://lab.malab.cn/soft/eFeature/index.html)
 
 ### Architecture
 
@@ -25,9 +25,9 @@ Read the three features .csv files of the training and testing datasets in the d
 
 Run PreAcrs.ipynb
 
-the result includes:
+The result includes:
 
-performance evaluation dataframe ‘validation_perfromance’ of the training dataset based on the 5-fold cross-validation
+Performance evaluation dataframe ‘`validation_perfromance`’ of the training dataset based on the 5-fold cross-validation
 
 ```
 #metrics ['PRE','SN','SP','F_score','ACC','MCC','AUC']
@@ -41,10 +41,9 @@ The ROC image of the training dataset based on the  5-fold cross-valion
 premodel.ROC_5_fold(y_proba_valid_all,y_verified_valid_all)
 ```
 
-
 ![1649398887897.png](image/README/1649398887897.png)
 
-The predicted scores of the testing proteins are saved in the ‘pred_test’ dataframe.
+The predicted scores of the testing proteins are saved in the ‘`pred_test`’ dataframe.
 
 ```
 pred_test=pd.DataFrame({'Predict score':test_pred_score,'Verified':test_data[0].iloc[:,0]}).reset_index(drop=True)
