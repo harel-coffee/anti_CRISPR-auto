@@ -17,7 +17,7 @@ The architecture of the PreAcrs is displayed in the following picture.
 
 ![](image/README/1649252127497.png)![1649398836124.png](image/README/1649398836124.png)
 
-### output
+### Output
 
 After preparing three features of the training dataset and the testing dataset, Download the code folder.
 
@@ -35,9 +35,12 @@ validation_perfromance=premodel.metrix(y_proba_valid_all,y_verified_valid_all)
 validation_perfromance
 ```
 
-![](image/README/1649398352770.png)![1649398849826.png](image/README/1649398849826.png)
+The ROC image of the training dataset based on the  5-fold cross-valion
 
-premodel.ROC_5_fold(y_proba_valid_all,y_verified_valid_all)The ROC image of the training dataset based on  the  5-fold cross-valion
+```
+premodel.ROC_5_fold(y_proba_valid_all,y_verified_valid_all)
+```
+
 
 ![1649398887897.png](image/README/1649398887897.png)
 
@@ -63,3 +66,5 @@ premodel.auc_pred(list(test_pred_score),list(test_data[0].iloc[:,0]))
 ```
 
 ![](image/README/1649398528765.png)![1649398900462.png](image/README/1649398900462.png)
+
+# Reference
