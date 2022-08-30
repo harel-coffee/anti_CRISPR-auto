@@ -22,6 +22,7 @@ from tqdm import tqdm, trange
 from itertools import combinations
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import StackingClassifier,GradientBoostingClassifier
+from catboost import CatBoostClassifier
 
 ###doing feature selection and normalization with mrmr mrthod
 def mrmr_feature_selection(data):
@@ -30,7 +31,6 @@ def mrmr_feature_selection(data):
     y=pd.Series(list(y))
     if x.columns.size>200:
         x=x[mrmr_classif(X=x,y=y, K = 200)]
-    x.insert(0,'class',list(y))
     return x 
 
 ###performance assessment
@@ -101,13 +101,16 @@ def individual_model(x_train,y_train):
     #XGB
     XGB=XGBClassifier(learning_rate=0.1,eval_metric=['logloss','auc','error'],use_label_encoder=False,objective="binary:logistic").fit(x_train,y_train)
     model_name.append(XGB)
+    #Catboost
+    cat=CatBoostClassifier(verbose=1000).fit(x_train,y_train)
+    model_name.append(cat)
     #Light
     light=LGBMClassifier().fit(x_train,y_train)
     model_name.append(light) 
     return model_str,model_name
 
-def ensemble_model1(train_data):
-    x_train,y_train=train_data.iloc[:,1:],train_data.iloc[:,0]
+def ensemble_model1(x_train,y_train):
+#    x_train,y_train=train_data.iloc[:,1:],train_data.iloc[:,0]
     model_str,model_name=individual_model(x_train,y_train)
     #ensemble1:hard voting 
     #ensem1 = VotingClassifier(estimators=list(zip(model_str,model_name)),voting='soft',weights=[1]*(len(model_name))).fit(x_train,y_train)
@@ -125,7 +128,7 @@ def ROC_5_fold(y_proba_valid,y_validation):
         # Compute ROC curve and area the curve
         fpr, tpr, thresholds = roc_curve(list(y_verified), list(y_proba))
         tprs.append(np.interp(mean_fpr, fpr, tpr))
-        tprs[-1][0] = 0.0
+        tprs[-1][0]= 0.0
         roc_auc = auc(fpr, tpr)
         aucs.append(roc_auc)
         plt.plot(fpr, tpr, lw=1, alpha=0.3,
@@ -195,17 +198,20 @@ def get_result(train_data,test_data):
         y_proba_test_ense,y_proba_valid_ense=[],[]
         
         for i in range(0,len(train_data)):
-            train,valida=mrmr_feature_selection(train_data[i].iloc[train_site,:]),mrmr_feature_selection(train_data[i].iloc[valida_site,:])
-            test=mrmr_feature_selection(test_data[i])
-            ensemble_clf=ensemble_model1(train)
-            y_proba_valid=ensemble_clf.predict_proba(valida.iloc[:,1:])[:,1]
-            y_proba_test=ensemble_clf.predict_proba(test.iloc[:,1:])[:,1]
+            Y_train,Y_valid=train_data[i].iloc[train_site,:].iloc[:,0],train_data[i].iloc[valida_site,:].iloc[:,0]
+            X_train=mrmr_feature_selection(train_data[i].iloc[train_site,:])
+            X_valid=pd.DataFrame(preprocessing.minmax_scale(train_data[i].iloc[valida_site,:][X_train.columns]),columns=X_train.columns)
+            X_test=pd.DataFrame(preprocessing.minmax_scale(test_data[i][X_train.columns]),columns=X_train.columns)
+
+            ensemble_clf=ensemble_model1(X_train,Y_train)
+            y_proba_valid=ensemble_clf.predict_proba(X_valid)[:,1]
+            y_proba_test=ensemble_clf.predict_proba(X_test)[:,1]
             y_proba_valid_ense.append(y_proba_valid)
             y_proba_test_ense.append(y_proba_test)  
              
         y_proba_valid_all.append(np.mean(y_proba_valid_ense,axis=0)) ##ensemble three features 
         y_proba_test_all.append(np.mean(y_proba_test_ense,axis=0))
-        y_verified_valid_all.append(valida.iloc[:,0])
+        y_verified_valid_all.append(Y_valid)
         ##
     test_pred_score=np.mean(y_proba_test_all,axis=0)#the predicted probability of the test data
 #    valid_per_mean,valid_per_std=np.mean(valida_per_all,axis=0),np.std(valida_per_all,axis=0) ##the average of 5-fold performance
