@@ -15,7 +15,7 @@ After downloading the amino acid sequences of anti-CRISPR proteins and un-anti-C
 
 The architecture of the PreAcrs is displayed in the following picture.
 
-![](image/README/1649252127497.png)![1649398836124.png](image/README/1649398836124.png)
+![Figure4.png](image/README/Figure4.png)
 
 ### Output
 
