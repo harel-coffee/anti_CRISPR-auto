@@ -67,3 +67,4 @@ premodel.auc_pred(list(test_pred_score),list(test_data[0].iloc[:,0]))
 ![](image/README/1649398528765.png)![1649398900462.png](image/README/1649398900462.png)
 
 # Reference
+PreAcrs: a machine learning framework for identifying anti-CRISPR proteins. [https://doi.org/10.1186/s12859-022-04986-3]
